@@ -4,10 +4,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bauphysik · U-value · 1.1</title>
-    <!--
-      Content Security Policy: only own-origin scripts, styles and
-      data. No inline script. No remote resources.
-    -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
@@ -19,13 +15,12 @@
         connect-src 'none';
         base-uri 'none';
         form-action 'none';
-        frame-ancestors 'none';
       "
     />
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <main id="app"></main>
-    <script type="module" src="js/ui/uvalue-app.js"></script>
+    <script type="module" src="uvalue-app.js"></script>
   </body>
 </html>

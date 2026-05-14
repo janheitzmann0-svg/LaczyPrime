@@ -7,16 +7,16 @@
 import {
   computeUValue,
   surfaceResistancesFor,
-} from "../engine/uvalue.js";
+} from "./uvalue.js";
 import {
   MATERIALS,
   MATERIAL_BY_ID,
   CATEGORIES,
   SURFACE_RESISTANCES,
   DATA_SOURCE_NOTE,
-} from "../engine/reference-data.js";
-import { SHARED_POOL } from "../engine/notation.js";
-import { loadQuickCalc, saveQuickCalc, resetAll } from "../storage/persistence.js";
+} from "./reference-data.js";
+import { SHARED_POOL } from "./notation.js";
+import { loadQuickCalc, saveQuickCalc, resetAll } from "./persistence.js";
 
 // ── tiny helpers ────────────────────────────────────────────────────
 
