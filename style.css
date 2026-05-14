@@ -1,0 +1,274 @@
+/* Bauphysik · U-value Quick Calc — base styles
+ *
+ * Design intent: pro tool for engineering students.
+ * Quiet, high contrast, monospaced where numerical density matters.
+ * No decorative chrome.
+ */
+
+:root {
+  --bg: #fafafa;
+  --bg-block: #ffffff;
+  --fg: #1a1a1a;
+  --fg-muted: #5f5f5f;
+  --fg-faint: #909090;
+  --line: #e2e2e2;
+  --line-strong: #c8c8c8;
+  --accent: #1e3a5f;
+  --accent-soft: #eef3f9;
+  --warn: #a8500d;
+  --num-font: "SFMono-Regular", "JetBrains Mono", "Cascadia Mono",
+    "Consolas", "Menlo", "Liberation Mono", monospace;
+  --ui-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171a;
+    --bg-block: #1e2024;
+    --fg: #e8e8e8;
+    --fg-muted: #a0a4aa;
+    --fg-faint: #6b7078;
+    --line: #2c3036;
+    --line-strong: #3c4048;
+    --accent: #8fb6e5;
+    --accent-soft: #232a35;
+    --warn: #e0a070;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--ui-font);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+/* ── header ───────────────────────────────────────────────────── */
+.appHeader { margin-bottom: 24px; }
+.crumb {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted);
+  margin-bottom: 6px;
+}
+.appHeader h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.appHeader .sub {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 14px;
+}
+
+/* ── blocks ───────────────────────────────────────────────────── */
+.block {
+  background: var(--bg-block);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+.label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted);
+  margin-bottom: 8px;
+}
+
+/* ── component name ───────────────────────────────────────────── */
+.nameInput {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 15px;
+}
+.nameInput:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* ── radio group (heat flow direction) ────────────────────────── */
+.radioGroup { display: flex; flex-direction: column; gap: 6px; }
+.radioRow { display: flex; align-items: baseline; gap: 8px; }
+.radioLabel { cursor: pointer; }
+.radioLabel .meta {
+  margin-left: 8px;
+  color: var(--fg-muted);
+  font-family: var(--num-font);
+  font-size: 13px;
+}
+
+/* ── layers table ─────────────────────────────────────────────── */
+.layers {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+.layers th, .layers td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+.layers thead th {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--line-strong);
+}
+.layers .unit {
+  color: var(--fg-faint);
+  font-weight: 400;
+  font-family: var(--num-font);
+  font-size: 12px;
+}
+.colNum { width: 28px; color: var(--fg-faint); font-family: var(--num-font); }
+.colMat { min-width: 220px; }
+.colLam, .colThk, .colR { width: 110px; }
+.colAct { width: 32px; text-align: center; }
+.derived {
+  font-family: var(--num-font);
+  color: var(--fg-muted);
+  text-align: right;
+}
+
+.matSelect, .customNameInput {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+}
+.customNameInput { margin-top: 4px; }
+
+.num {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--num-font);
+  font-size: 14px;
+  text-align: right;
+}
+.num:focus, .matSelect:focus, .customNameInput:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.addBtn {
+  margin-top: 12px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 14px;
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.addBtn:hover { border-color: var(--accent); color: var(--accent); }
+
+.rmBtn {
+  border: none;
+  background: transparent;
+  color: var(--fg-faint);
+  font-size: 18px;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  line-height: 1;
+  border-radius: 3px;
+  padding: 0;
+}
+.rmBtn:hover { color: var(--warn); background: var(--accent-soft); }
+
+/* ── results ──────────────────────────────────────────────────── */
+.results { background: var(--accent-soft); }
+.resRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+  font-family: var(--num-font);
+  font-size: 14px;
+}
+.resLabel { color: var(--fg-muted); }
+.resValue { color: var(--fg); }
+.rTotalLine {
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+  padding-top: 6px;
+}
+.uLine {
+  font-size: 16px;
+  font-weight: 600;
+  border-top: 1px solid var(--line-strong);
+  margin-top: 4px;
+  padding-top: 6px;
+}
+.uLine .resValue { color: var(--accent); }
+.hint {
+  color: var(--fg-muted);
+  font-size: 13px;
+  font-style: italic;
+  margin: 8px 0 0;
+}
+
+/* ── footer ───────────────────────────────────────────────────── */
+.appFooter {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.resetBtn {
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.resetBtn:hover { color: var(--warn); border-color: var(--warn); }
+.src {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--fg-faint);
+  line-height: 1.5;
+}
+
+/* ── responsive tweaks ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  #app { padding: 16px 12px 48px; }
+  .layers th, .layers td { padding: 4px 4px; }
+  .colMat { min-width: 140px; }
+  .colLam, .colThk, .colR { width: 78px; }
+  .radioLabel .meta { display: block; margin-left: 0; }
+}
