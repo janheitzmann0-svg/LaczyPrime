@@ -171,14 +171,31 @@ function render() {
 
 // — header ───────────────────────────────────────────────────────────
 function renderHeader() {
+  const h1 = el("h1", {}, [
+    "U-value ",
+    el("em", {}, "— homogeneous component"),
+  ]);
+  const brand = el("div", { className: "brand", "aria-label": "LaczyPrime" }, [
+    el("span", { className: "brandWord" }, "Laczy"),
+    el("span", { className: "brandWordAccent" }, "Prime"),
+    el("span", { className: "brandDot", "aria-hidden": "true" }, ""),
+    el("span", { className: "brandTag" }, "Building physics · field manual"),
+  ]);
   return el("header", { className: "appHeader" }, [
-    el("div", { className: "crumb" }, "Module 1 — Thermal protection · 1.1"),
-    el("h1", {}, "U-value · homogeneous component"),
-    el(
-      "p",
-      { className: "sub" },
-      "Steady-state 1D heat flow. Layers are listed from interior to exterior."
-    ),
+    brand,
+    el("div", { className: "headerBody" }, [
+      el("div", { className: "chapterMark", "aria-hidden": "true" }, "1.1"),
+      el("div", { className: "headerText" }, [
+        el("div", { className: "crumb" }, "Module 1 · Thermal protection"),
+        h1,
+        el(
+          "p",
+          { className: "sub" },
+          "Steady-state, one-dimensional heat flow through a homogeneous build-up. " +
+            "Layers ordered from interior to exterior."
+        ),
+      ]),
+    ]),
   ]);
 }
 
@@ -300,53 +317,12 @@ function renderLayerRow(layer, index) {
   // # column
   row.appendChild(el("td", { className: "colNum" }, String(index + 1)));
 
-  // material select
-  const select = el("select", {
-    className: "matSelect",
-    "aria-label": `Layer ${index + 1} material`,
-    onChange: (e) => {
-      const v = e.target.value;
-      if (v === "__custom__") {
-        layer.materialId = null;
-        // Keep current lambda — user can edit.
-      } else {
-        layer.materialId = v;
-        const m = MATERIAL_BY_ID[v];
-        if (m) layer.lambda_W_mK = m.lambdaDefault;
-      }
-      persist();
-      render();
-    },
-  });
+  // — Material picker — custom searchable popover ───────────────────
+  // A trigger button shows the current selection; clicking opens a
+  // popover anchored to the row with a search input and filtered list.
+  const matCell = el("td", { className: "colMat" });
+  matCell.appendChild(renderMaterialPicker(layer, index));
 
-  // Custom option first
-  select.appendChild(
-    el(
-      "option",
-      { value: "__custom__", selected: layer.materialId == null ? true : null },
-      "— Custom material —"
-    )
-  );
-
-  for (const cat of CATEGORIES) {
-    const grp = el("optgroup", { label: cat });
-    for (const m of MATERIALS.filter((x) => x.category === cat)) {
-      grp.appendChild(
-        el(
-          "option",
-          {
-            value: m.id,
-            selected: layer.materialId === m.id ? true : null,
-          },
-          `${m.name} (λ ${fmt3(m.lambdaDefault)})`
-        )
-      );
-    }
-    select.appendChild(grp);
-  }
-
-  // material cell wraps select + optional custom-name input
-  const matCell = el("td", { className: "colMat" }, [select]);
   if (layer.materialId == null) {
     matCell.appendChild(
       el("input", {
@@ -438,6 +414,186 @@ function renderLayerRow(layer, index) {
   return row;
 }
 
+// ── searchable material picker ──────────────────────────────────────
+//
+// A trigger button shows the current selection; clicking opens a
+// popover with a search input and a filtered, category-grouped list.
+// One picker per layer; only one open at a time (closing handled by
+// outside-click listener).
+
+let _openPicker = null;
+function closeOpenPicker() {
+  if (_openPicker) {
+    _openPicker.remove();
+    _openPicker = null;
+    document.removeEventListener("click", _outsideClickHandler, true);
+    document.removeEventListener("keydown", _escKeyHandler, true);
+  }
+}
+function _outsideClickHandler(e) {
+  if (_openPicker && !_openPicker.contains(e.target)) closeOpenPicker();
+}
+function _escKeyHandler(e) {
+  if (e.key === "Escape") closeOpenPicker();
+}
+
+function renderMaterialPicker(layer, index) {
+  const triggerLabel = layer.materialId && MATERIAL_BY_ID[layer.materialId]
+    ? MATERIAL_BY_ID[layer.materialId].name
+    : layer.customName
+      ? `${layer.customName} (custom)`
+      : "Choose material…";
+
+  const triggerIsCustom = layer.materialId == null && !layer.customName;
+
+  const trigger = el(
+    "button",
+    {
+      type: "button",
+      className: "matTrigger" + (triggerIsCustom ? " is-placeholder" : ""),
+      "aria-haspopup": "listbox",
+      "aria-label": `Layer ${index + 1} material`,
+      onClick: (e) => {
+        e.stopPropagation();
+        const wasOpen = _openPicker && _openPicker.dataset.forIndex === String(index);
+        closeOpenPicker();
+        if (!wasOpen) openPicker(trigger, layer, index);
+      },
+    },
+    [
+      el("span", { className: "matTriggerLabel" }, triggerLabel),
+      el("span", { className: "matTriggerChevron", "aria-hidden": "true" }, "▾"),
+    ]
+  );
+  return trigger;
+}
+
+function openPicker(anchorEl, layer, index) {
+  const popover = el("div", {
+    className: "matPopover",
+    "data-for-index": String(index),
+    role: "dialog",
+    "aria-label": "Choose material",
+  });
+
+  // Anchor positioning: place under the trigger, full-width.
+  const rect = anchorEl.getBoundingClientRect();
+  popover.style.position = "absolute";
+  popover.style.left = `${window.scrollX + rect.left}px`;
+  popover.style.top = `${window.scrollY + rect.bottom + 4}px`;
+  popover.style.minWidth = `${Math.max(rect.width, 360)}px`;
+
+  // Search input
+  const searchInput = el("input", {
+    type: "search",
+    className: "matSearch",
+    placeholder: "Search materials… (or leave blank to browse)",
+    "aria-label": "Search materials",
+    autocomplete: "off",
+    spellcheck: "false",
+  });
+  popover.appendChild(searchInput);
+
+  // List container
+  const listBox = el("div", { className: "matList", role: "listbox" });
+  popover.appendChild(listBox);
+
+  function pick(materialId) {
+    if (materialId === "__custom__") {
+      layer.materialId = null;
+      // keep lambda; user will edit
+    } else {
+      layer.materialId = materialId;
+      const m = MATERIAL_BY_ID[materialId];
+      if (m && Number.isFinite(m.lambda)) layer.lambda_W_mK = m.lambda;
+    }
+    closeOpenPicker();
+    persist();
+    render();
+  }
+
+  function renderList(query) {
+    clear(listBox);
+    const q = (query || "").trim().toLowerCase();
+
+    // Custom option always at top
+    listBox.appendChild(
+      el(
+        "button",
+        {
+          type: "button",
+          className: "matItem matItem--custom",
+          onClick: () => pick("__custom__"),
+        },
+        [
+          el("span", { className: "matItemName" }, "— Custom material —"),
+          el("span", { className: "matItemMeta" }, "manual λ, manual name"),
+        ]
+      )
+    );
+
+    let total = 0;
+    for (const cat of CATEGORIES) {
+      const matches = MATERIALS.filter(
+        (m) =>
+          m.category === cat &&
+          (q === "" ||
+            m.name.toLowerCase().includes(q) ||
+            (m.subgroup && m.subgroup.toLowerCase().includes(q)) ||
+            cat.toLowerCase().includes(q))
+      );
+      if (matches.length === 0) continue;
+
+      listBox.appendChild(el("div", { className: "matCatHead" }, cat));
+
+      let lastSub = null;
+      for (const m of matches) {
+        if (m.subgroup && m.subgroup !== lastSub) {
+          listBox.appendChild(
+            el("div", { className: "matSubHead" }, m.subgroup)
+          );
+          lastSub = m.subgroup;
+        }
+        const isSelected = layer.materialId === m.id;
+        listBox.appendChild(
+          el(
+            "button",
+            {
+              type: "button",
+              className: "matItem" + (isSelected ? " is-selected" : ""),
+              onClick: () => pick(m.id),
+            },
+            [
+              el("span", { className: "matItemName" }, m.name),
+              el("span", { className: "matItemMeta" },
+                `λ ${fmt3(m.lambda)}` +
+                (m.density != null ? ` · ρ ${m.density}` : "")),
+            ]
+          )
+        );
+        total++;
+      }
+    }
+    if (total === 0 && q !== "") {
+      listBox.appendChild(
+        el("div", { className: "matEmpty" }, "No matching materials.")
+      );
+    }
+  }
+
+  searchInput.addEventListener("input", (e) => renderList(e.target.value));
+  renderList("");
+
+  document.body.appendChild(popover);
+  _openPicker = popover;
+  // Defer registration so the same click that opened doesn't close it.
+  setTimeout(() => {
+    document.addEventListener("click", _outsideClickHandler, true);
+    document.addEventListener("keydown", _escKeyHandler, true);
+  }, 0);
+  searchInput.focus();
+}
+
 /**
  * Local DOM update for a single row's R cell — avoids a full re-render
  * on every keystroke. Full re-render is reserved for structural change
@@ -463,51 +619,57 @@ function renderResults() {
 
 function buildResultsContent(section) {
   clear(section);
-  section.appendChild(el("div", { className: "label" }, "Result"));
 
   const r = results();
 
-  // R_layers row
-  section.appendChild(
-    rowLine(
-      [renderDisplay(SHARED_POOL.thermal_resistance_layer.display), "  (Σ layers)"],
-      r.R_layers != null ? `${fmt3(r.R_layers)} (m²·K)/W` : "—"
+  // — Hero: the U-value, big and quiet ——
+  const heroValueText = r.U != null ? fmt3(r.U) : "—";
+  const hero = el("div", { className: "hero" }, [
+    el("div", { className: "heroLabel" }, "U-value"),
+    el("div", { className: "heroLine" }, [
+      el("span", { className: "heroValue" }, heroValueText),
+      el("span", { className: "heroUnit" }, "W/(m²·K)"),
+    ]),
+  ]);
+  section.appendChild(hero);
+
+  // — Breakdown: how U gets there ——
+  const breakdown = el("div", { className: "breakdown" });
+
+  breakdown.appendChild(
+    resRow(
+      [
+        renderDisplay(SHARED_POOL.thermal_resistance_layer.display),
+        el("span", { className: "rowSub" }, "Σ layers"),
+      ],
+      r.R_layers != null ? fmt3(r.R_layers) : "—",
+      "(m²·K)/W"
     )
   );
-
-  // R_si
-  section.appendChild(
-    rowLine(
+  breakdown.appendChild(
+    resRow(
       [renderDisplay(SHARED_POOL.surface_resistance_internal.display)],
-      `${fmt2(r.R_si)} (m²·K)/W`
+      fmt2(r.R_si),
+      "(m²·K)/W"
     )
   );
-
-  // R_se
-  section.appendChild(
-    rowLine(
+  breakdown.appendChild(
+    resRow(
       [renderDisplay(SHARED_POOL.surface_resistance_external.display)],
-      `${fmt2(r.R_se)} (m²·K)/W`
+      fmt2(r.R_se),
+      "(m²·K)/W"
     )
   );
-
-  // R_T
-  section.appendChild(
-    rowLine(
+  breakdown.appendChild(
+    resRow(
       [renderDisplay(SHARED_POOL.thermal_resistance_total.display)],
-      r.R_T != null ? `${fmt3(r.R_T)} (m²·K)/W` : "—",
+      r.R_T != null ? fmt3(r.R_T) : "—",
+      "(m²·K)/W",
       "rTotalLine"
     )
   );
 
-  // U
-  section.appendChild(
-    rowLine(
-      [renderDisplay(SHARED_POOL.thermal_transmittance.display)],
-      r.U != null ? `${fmt3(r.U)} W/(m²·K)` : "—",
-      "uLine"
-    )
-  );
+  section.appendChild(breakdown);
 
   if (r.incomplete) {
     section.appendChild(
@@ -520,11 +682,14 @@ function buildResultsContent(section) {
   }
 }
 
-function rowLine(labelChildren, valueText, extraClass) {
+function resRow(labelChildren, valueText, unitText, extraClass) {
   const cn = "resRow" + (extraClass ? ` ${extraClass}` : "");
   return el("div", { className: cn }, [
     el("span", { className: "resLabel" }, [].concat(labelChildren)),
-    el("span", { className: "resValue" }, valueText),
+    el("span", { className: "resValueGroup" }, [
+      el("span", { className: "resValue" }, valueText),
+      el("span", { className: "resUnit" }, unitText),
+    ]),
   ]);
 }
 
