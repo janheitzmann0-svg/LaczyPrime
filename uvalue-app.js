@@ -726,3 +726,17 @@ function renderFooter() {
 
 // ── boot ────────────────────────────────────────────────────────────
 render();
+
+// ── service worker registration ─────────────────────────────────────
+// Network-first strategy is implemented in sw.js — updates ship
+// immediately on next page load, cache is offline fallback only.
+// Registered after first render so it never blocks UI.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./sw.js", { scope: "./" })
+      .catch((err) => {
+        console.warn("[laczyprime] service worker registration failed:", err);
+      });
+  });
+}
