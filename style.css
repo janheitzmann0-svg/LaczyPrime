@@ -803,4 +803,268 @@ input[type="radio"]:focus-visible {
   .heroValue { font-size: 36px; }
   .heroLabel { font-size: 18px; }
   .matPopover { max-width: 90vw; }
+  .boundaryRow { gap: 14px; }
+  .qValue { font-size: 22px; }
+  .tempFig { margin: 16px -4px 0; }
+}
+
+/* ── temperature profile sub-section ──────────────────────────── */
+
+:root {
+  --temp-line:        #b8362d;
+  --temp-line-glow:   rgba(184, 54, 45, 0.16);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --temp-line:      #e26a60;
+    --temp-line-glow: rgba(226, 106, 96, 0.22);
+  }
+}
+
+.profileBlock {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line-hairline);
+}
+
+.profileHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.profileTitle {
+  font-family: var(--serif-font);
+  font-style: italic;
+  font-size: 20px;
+  color: var(--fg);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.profileSub {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+/* Boundary condition inputs */
+.boundaryRow {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--accent-soft);
+  border-radius: var(--radius);
+}
+.boundaryField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.boundaryLabel {
+  font-family: var(--num-font);
+  font-feature-settings: "tnum" 1;
+  font-size: 14px;
+  color: var(--fg-secondary);
+  min-width: 22px;
+}
+.boundaryUnit {
+  font-family: var(--num-font);
+  font-feature-settings: "tnum" 1;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.numCompact {
+  width: 78px;
+  padding: 5px 8px;
+  font-size: 13.5px;
+}
+
+/* q line */
+.qLine {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0 14px;
+  border-bottom: 1px solid var(--line-hairline);
+  margin-bottom: 14px;
+}
+.qLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--num-font);
+  font-feature-settings: "tnum" 1;
+  color: var(--fg-secondary);
+  font-size: 15px;
+}
+.qSub {
+  color: var(--fg-faint);
+  font-family: var(--ui-font);
+  font-size: 12px;
+  font-style: italic;
+}
+.qValueGroup {
+  font-family: var(--num-font);
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  white-space: nowrap;
+}
+.qValue {
+  color: var(--accent);
+  font-size: 26px;
+  font-weight: 500;
+}
+.qUnit {
+  color: var(--fg-muted);
+  font-size: 12px;
+  margin-left: 5px;
+}
+
+/* θ-table */
+.thetaTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 18px;
+}
+.thetaTable th, .thetaTable td {
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 13px;
+  vertical-align: middle;
+}
+.thetaTable thead th {
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+.thetaTable tbody tr {
+  border-bottom: 1px solid var(--line-hairline);
+}
+.thetaTable tbody tr:last-child { border-bottom: none; }
+.thetaTable .tNum {
+  text-align: right;
+  font-family: var(--num-font);
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.thetaTable .tUnit {
+  color: var(--fg-faint);
+  font-size: 11px;
+  margin-left: 3px;
+}
+.thetaRow--air_interior td:first-child,
+.thetaRow--air_exterior td:first-child {
+  color: var(--fg-secondary);
+  font-weight: 500;
+}
+.thetaRow--surface_interior td:first-child,
+.thetaRow--surface_exterior td:first-child {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* SVG figure */
+.tempFig {
+  margin: 18px 0 0;
+  padding: 0;
+}
+.tempSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.tempSvg .airBand { fill: var(--accent-soft); }
+.tempSvg .layerBand--a { fill: rgba(0, 0, 0, 0.015); }
+.tempSvg .layerBand--b { fill: rgba(0, 0, 0, 0.045); }
+
+@media (prefers-color-scheme: dark) {
+  .tempSvg .layerBand--a { fill: rgba(255, 255, 255, 0.025); }
+  .tempSvg .layerBand--b { fill: rgba(255, 255, 255, 0.060); }
+}
+
+.tempSvg .axisLine {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  fill: none;
+}
+.tempSvg .surfaceLine {
+  stroke: var(--line-strong);
+  stroke-width: 1.2;
+  fill: none;
+}
+.tempSvg .interfaceLine {
+  stroke: var(--line);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  fill: none;
+}
+.tempSvg .gridLine {
+  stroke: var(--line-hairline);
+  stroke-width: 1;
+  fill: none;
+}
+.tempSvg .gridLine--zero {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+.tempSvg .tickMark {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.tempSvg .axisLabel {
+  font-family: var(--num-font);
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  font-size: 10px;
+  fill: var(--fg-muted);
+}
+.tempSvg .axisTitle {
+  font-family: var(--ui-font);
+  font-style: italic;
+  font-size: 11px;
+  fill: var(--fg-secondary);
+}
+.tempSvg .layerName {
+  font-family: var(--ui-font);
+  font-size: 10.5px;
+  fill: var(--fg-secondary);
+  font-style: italic;
+}
+
+.tempSvg .tempLine {
+  stroke: var(--temp-line);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  fill: none;
+}
+.tempSvg .tempDot {
+  fill: var(--temp-line);
+  stroke: var(--bg-input);
+  stroke-width: 1.2;
+}
+.tempSvg .tempLabel {
+  font-family: var(--num-font);
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  font-size: 10px;
+  font-weight: 500;
+  fill: var(--temp-line);
+  paint-order: stroke;
+  stroke: var(--bg-input);
+  stroke-width: 3;
+  stroke-linejoin: round;
 }

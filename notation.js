@@ -110,6 +110,66 @@ export const SHARED_POOL = Object.freeze({
     displayUnit: "W/(m²·K)",
     plausibleRange: { min: 0.10, max: 6.0, warn: "outside typical range" },
   },
+
+  // ── Temperatures (θ in °C; T reserved for Kelvin) ───────────────
+  theta_indoor_air: {
+    id: "theta_indoor_air",
+    symbol: "θ_i",
+    code: "theta_i",
+    display: "θ<sub>i</sub>",
+    name: "Indoor air temperature",
+    siUnit: "°C",
+    displayUnit: "°C",
+    plausibleRange: { min: -10, max: 40 },
+  },
+  theta_outdoor_air: {
+    id: "theta_outdoor_air",
+    symbol: "θ_e",
+    code: "theta_e",
+    display: "θ<sub>e</sub>",
+    name: "Outdoor air temperature",
+    siUnit: "°C",
+    displayUnit: "°C",
+    plausibleRange: { min: -40, max: 50 },
+  },
+  theta_surface_internal: {
+    id: "theta_surface_internal",
+    symbol: "θ_si",
+    code: "theta_si",
+    display: "θ<sub>si</sub>",
+    name: "Internal surface temperature",
+    siUnit: "°C",
+    displayUnit: "°C",
+  },
+  theta_surface_external: {
+    id: "theta_surface_external",
+    symbol: "θ_se",
+    code: "theta_se",
+    display: "θ<sub>se</sub>",
+    name: "External surface temperature",
+    siUnit: "°C",
+    displayUnit: "°C",
+  },
+  theta_interface: {
+    id: "theta_interface",
+    symbol: "θ_n/n+1",
+    code: "theta_interface",
+    display: "θ",
+    name: "Layer interface temperature",
+    siUnit: "°C",
+    displayUnit: "°C",
+  },
+
+  // ── Heat flux density ───────────────────────────────────────────
+  heat_flux_density: {
+    id: "heat_flux_density",
+    symbol: "q",
+    code: "q",
+    display: "q",
+    name: "Heat flux density",
+    siUnit: "W/m²",
+    displayUnit: "W/m²",
+  },
 });
 
 // ── Module 1 — module-specific additions (will grow with submodules) ──
