@@ -814,10 +814,262 @@ function buildTemperatureProfileBlock(r) {
   // θ table
   block.appendChild(buildThetaTable(p));
 
+  // Calculation steps — full transparency, symbolic + numeric
+  block.appendChild(buildCalculationSteps(p));
+
   // SVG diagram
   block.appendChild(buildTemperatureDiagram(p, r.layerNames));
 
   return block;
+}
+
+// ── Calculation steps ───────────────────────────────────────────────
+//
+// Every step is rendered as: symbolic = numeric = result [unit]
+// Numbers use the unrounded engine values (same precision as the table),
+// formatted to 3-4 sig digits. We render via DOM nodes, no innerHTML.
+
+function buildCalculationSteps(p) {
+  const block = el("section", { className: "calcSteps" });
+
+  block.appendChild(
+    el("div", { className: "calcStepsHead" }, "Calculation steps")
+  );
+
+  // ── Step 1: total resistance R_T = R_si + Σ R_i + R_se
+  block.appendChild(stepHeading("1.", "Total thermal resistance"));
+  {
+    // Build the symbolic line: R_T = R_si + R_1 + R_2 + … + R_se
+    const sym = el("span", {});
+    sym.appendChild(renderDisplay(SHARED_POOL.thermal_resistance_total.display));
+    sym.appendChild(document.createTextNode(" = "));
+    sym.appendChild(renderDisplay(SHARED_POOL.surface_resistance_internal.display));
+    for (let i = 0; i < p.perLayer.length; i++) {
+      sym.appendChild(document.createTextNode(" + "));
+      const r = el("span", {}, "R");
+      r.appendChild(el("sub", {}, String(i + 1)));
+      sym.appendChild(r);
+    }
+    sym.appendChild(document.createTextNode(" + "));
+    sym.appendChild(renderDisplay(SHARED_POOL.surface_resistance_external.display));
+
+    // Numeric line: 0.13 + 0.029 + 1.500 + … + 0.04
+    const numParts = [fmtCalc(p.R_si)];
+    for (const layer of p.perLayer) numParts.push(fmtCalc(layer.R));
+    numParts.push(fmtCalc(p.R_se));
+    const numText = numParts.join(" + ");
+
+    block.appendChild(formulaLine(sym, numText, fmtCalc(p.R_T), "(m²·K)/W"));
+  }
+
+  // ── Step 2: U = 1 / R_T
+  block.appendChild(stepHeading("2.", "Thermal transmittance"));
+  {
+    const sym = el("span", {});
+    sym.appendChild(document.createTextNode("U = 1 / "));
+    sym.appendChild(renderDisplay(SHARED_POOL.thermal_resistance_total.display));
+
+    const numText = `1 / ${fmtCalc(p.R_T)}`;
+
+    block.appendChild(formulaLine(sym, numText, fmtU(p.U), "W/(m²·K)"));
+  }
+
+  // ── Step 3: heat flux density q = U · (θ_i − θ_e)
+  block.appendChild(stepHeading("3.", "Heat flux density"));
+  {
+    const sym = el("span", {});
+    sym.appendChild(document.createTextNode("q = U · ("));
+    sym.appendChild(renderDisplay(SHARED_POOL.theta_indoor_air.display));
+    sym.appendChild(document.createTextNode(" − "));
+    sym.appendChild(renderDisplay(SHARED_POOL.theta_outdoor_air.display));
+    sym.appendChild(document.createTextNode(")"));
+
+    const numText =
+      `${fmtU(p.U)} · (${fmtTheta(p.theta_i_C)} − ${parenIfNeg(fmtTheta(p.theta_e_C))})`;
+
+    block.appendChild(formulaLine(sym, numText, fmtCalc(p.q), "W/m²"));
+  }
+
+  // ── Step 4..N: temperature cascade
+  // θ_si = θ_i − R_si · q
+  // θ_{n/n+1} = θ_prev − (d_n / λ_n) · q   (using R_n directly is fine too)
+  // θ_e = θ_se − R_se · q    (closure)
+  block.appendChild(stepHeading("4.", "Temperature cascade"));
+
+  const cascade = el("div", { className: "cascadeList" });
+
+  // θ_si
+  {
+    const sym = el("span", {});
+    sym.appendChild(renderDisplay(SHARED_POOL.theta_surface_internal.display));
+    sym.appendChild(document.createTextNode(" = "));
+    sym.appendChild(renderDisplay(SHARED_POOL.theta_indoor_air.display));
+    sym.appendChild(document.createTextNode(" − "));
+    sym.appendChild(renderDisplay(SHARED_POOL.surface_resistance_internal.display));
+    sym.appendChild(document.createTextNode(" · q"));
+
+    const numText =
+      `${parenIfNeg(fmtTheta(p.theta_i_C))} − ${fmtCalc(p.R_si)} · ${parenIfNeg(fmtCalc(p.q))}`;
+
+    cascade.appendChild(
+      formulaLine(sym, numText, fmtTheta(p.theta_si_C), "°C")
+    );
+  }
+
+  // Each interface: θ_{n/n+1} = θ_prev − R_n · q
+  let prevTheta = p.theta_si_C;
+  for (let i = 0; i < p.perLayer.length; i++) {
+    const layer = p.perLayer[i];
+    const isLast = i === p.perLayer.length - 1;
+
+    const sym = el("span", {});
+    // result label
+    if (isLast) {
+      sym.appendChild(renderDisplay(SHARED_POOL.theta_surface_external.display));
+    } else {
+      sym.appendChild(document.createTextNode("θ"));
+      sym.appendChild(el("sub", {}, `${i + 1}/${i + 2}`));
+    }
+    sym.appendChild(document.createTextNode(" = "));
+    // previous-label
+    if (i === 0) {
+      sym.appendChild(renderDisplay(SHARED_POOL.theta_surface_internal.display));
+    } else {
+      sym.appendChild(document.createTextNode("θ"));
+      sym.appendChild(el("sub", {}, `${i}/${i + 1}`));
+    }
+    sym.appendChild(document.createTextNode(" − ("));
+    const d = el("span", {}, "d");
+    d.appendChild(el("sub", {}, String(i + 1)));
+    sym.appendChild(d);
+    sym.appendChild(document.createTextNode(" / "));
+    const lam = el("span", {}, "λ");
+    lam.appendChild(el("sub", {}, String(i + 1)));
+    sym.appendChild(lam);
+    sym.appendChild(document.createTextNode(") · q"));
+
+    // numeric: 18.99 − (0.015 / 0.51) · 6.35
+    const numText =
+      `${parenIfNeg(fmtTheta(prevTheta))} − (${fmtD(layer.d_m)} / ${fmtCalc(layer.lambda_W_mK)}) · ${parenIfNeg(fmtCalc(p.q))}`;
+
+    cascade.appendChild(
+      formulaLine(sym, numText, fmtTheta(layer.theta_end_C), "°C")
+    );
+
+    prevTheta = layer.theta_end_C;
+  }
+
+  // θ_e closure
+  {
+    const sym = el("span", {});
+    sym.appendChild(renderDisplay(SHARED_POOL.theta_outdoor_air.display));
+    sym.appendChild(document.createTextNode(" = "));
+    sym.appendChild(renderDisplay(SHARED_POOL.theta_surface_external.display));
+    sym.appendChild(document.createTextNode(" − "));
+    sym.appendChild(renderDisplay(SHARED_POOL.surface_resistance_external.display));
+    sym.appendChild(document.createTextNode(" · q"));
+
+    const numText =
+      `${parenIfNeg(fmtTheta(p.theta_se_C))} − ${fmtCalc(p.R_se)} · ${parenIfNeg(fmtCalc(p.q))}`;
+
+    cascade.appendChild(
+      formulaLine(
+        sym,
+        numText,
+        fmtTheta(p.theta_e_calc_C),
+        "°C",
+        "cascadeClose"
+      )
+    );
+  }
+
+  block.appendChild(cascade);
+
+  // Footnote — closure note
+  block.appendChild(
+    el(
+      "p",
+      { className: "calcNote" },
+      "Last line is the closure check — recovers the input θₑ to within rounding."
+    )
+  );
+
+  return block;
+}
+
+function stepHeading(num, title) {
+  return el("div", { className: "calcStepHead" }, [
+    el("span", { className: "calcStepNum" }, num),
+    el("span", { className: "calcStepTitle" }, title),
+  ]);
+}
+
+/**
+ * One formula line, rendered as: <symbolic> = <numeric> = <result> <unit>
+ * symbolicNode is a Node (DOM fragment or element).
+ */
+function formulaLine(symbolicNode, numericText, resultText, unitText, extraClass) {
+  const cn = "formulaLine" + (extraClass ? ` ${extraClass}` : "");
+  return el("div", { className: cn }, [
+    el("span", { className: "fSym" }, [symbolicNode]),
+    el("span", { className: "fEq" }, "="),
+    el("span", { className: "fNum" }, numericText),
+    el("span", { className: "fResult" }, [
+      el("span", { className: "fEq fEqResult" }, "="),
+      el("span", { className: "fResultValue" }, resultText),
+      el("span", { className: "fResultUnit" }, unitText),
+    ]),
+  ]);
+}
+
+/** Wrap a numeric string in parentheses if it starts with a minus. */
+function parenIfNeg(s) {
+  return s.startsWith("-") ? `(${s})` : s;
+}
+
+/** Number formatter for calculation lines — adaptive precision. */
+function fmtCalc(n) {
+  if (!Number.isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  let digits;
+  if (abs === 0) digits = 2;
+  else if (abs >= 100) digits = 1;
+  else if (abs >= 10) digits = 2;
+  else if (abs >= 1) digits = 3;
+  else if (abs >= 0.1) digits = 2;     // R_si = 0.13 (not 0.130)
+  else if (abs >= 0.01) digits = 3;
+  else digits = 4;
+  return n.toLocaleString("en-GB", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+/** Temperature formatter — always 2 decimals for calculation lines. */
+function fmtTheta(n) {
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString("en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/** Layer thickness in metres — 3 decimals (matches book). */
+function fmtD(n) {
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString("en-GB", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  });
+}
+
+/** U-value formatter — 3 decimals, matches the hero display. */
+function fmtU(n) {
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString("en-GB", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  });
 }
 
 function buildThetaTable(p) {
@@ -1285,16 +1537,94 @@ function renderFooter() {
 // ── boot ────────────────────────────────────────────────────────────
 render();
 
-// ── service worker registration ─────────────────────────────────────
-// Network-first strategy is implemented in sw.js — updates ship
-// immediately on next page load, cache is offline fallback only.
-// Registered after first render so it never blocks UI.
+// ── service worker registration + update banner ─────────────────────
+// Strategy:
+//   • On each page load, register the SW.
+//   • The browser checks sw.js for byte-level changes. If different,
+//     the new SW enters "installing" → "installed (waiting)" state.
+//   • At that point we show a non-modal banner. Click → we postMessage
+//     SKIP_WAITING to the waiting SW; on controllerchange we reload.
+//   • We also call reg.update() once per load, so a long-running PWA
+//     window catches new versions without needing a full close/reopen.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("./sw.js", { scope: "./" })
+      .then((reg) => {
+        // Force an update check on every load.
+        reg.update().catch(() => {});
+
+        // Case A: a new SW is already waiting from a previous load.
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          showUpdateBanner(reg.waiting);
+        }
+
+        // Case B: a new SW becomes available now.
+        reg.addEventListener("updatefound", () => {
+          const installing = reg.installing;
+          if (!installing) return;
+          installing.addEventListener("statechange", () => {
+            if (
+              installing.state === "installed" &&
+              navigator.serviceWorker.controller
+            ) {
+              // controller present → this is an UPDATE (not first install)
+              showUpdateBanner(installing);
+            }
+          });
+        });
+      })
       .catch((err) => {
         console.warn("[laczyprime] service worker registration failed:", err);
       });
+
+    // When the new SW takes control, reload once to pick up new assets.
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloaded) return;
+      reloaded = true;
+      window.location.reload();
+    });
   });
+}
+
+let _updateBannerShown = false;
+function showUpdateBanner(waitingWorker) {
+  if (_updateBannerShown) return;
+  _updateBannerShown = true;
+
+  const banner = el("div", {
+    className: "updateBanner",
+    role: "status",
+    "aria-live": "polite",
+  }, [
+    el("span", { className: "updateBannerText" },
+      "A new version is available."),
+    el(
+      "button",
+      {
+        type: "button",
+        className: "updateBannerBtn",
+        onClick: () => {
+          if (waitingWorker) {
+            waitingWorker.postMessage("SKIP_WAITING");
+          } else {
+            window.location.reload();
+          }
+        },
+      },
+      "Reload"
+    ),
+    el(
+      "button",
+      {
+        type: "button",
+        className: "updateBannerDismiss",
+        "aria-label": "Dismiss",
+        onClick: () => banner.remove(),
+      },
+      "×"
+    ),
+  ]);
+  document.body.appendChild(banner);
 }

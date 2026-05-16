@@ -9,7 +9,7 @@
  * evicted on activate.
  */
 
-const CACHE_VERSION = "laczyprime-v1-20260515";
+const CACHE_VERSION = "laczyprime-v4-20260516";
 
 const APP_SHELL = [
   "./",
@@ -18,6 +18,7 @@ const APP_SHELL = [
   "./notation.js",
   "./reference-data.js",
   "./uvalue.js",
+  "./temperature-profile.js",
   "./persistence.js",
   "./uvalue-app.js",
   "./manifest.webmanifest",
@@ -41,7 +42,16 @@ self.addEventListener("install", (event) => {
       )
     )
   );
-  self.skipWaiting();
+  // Note: we intentionally do NOT call self.skipWaiting() here.
+  // The page shows an "update available" banner; the user clicks Reload,
+  // the page posts SKIP_WAITING, then we activate. This keeps the user
+  // in control of when the page replaces itself.
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {
